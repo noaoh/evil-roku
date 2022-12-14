@@ -1,0 +1,1 @@
+An evil little script to send random commands to Rokus on your WiFi network, uses https://gist.github.com/dankrause/6000248 changed to python3 to detect Rokus
