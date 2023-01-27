@@ -7,6 +7,7 @@ import asyncio
 import constants
 import time
  
+# Based on https://gist.github.com/dankrause/6000248, all credit for this goes to him!
 class SSDPResponse(object):
     class _FakeSocket(io.BytesIO):
          def makefile(self, *args, **kw):
