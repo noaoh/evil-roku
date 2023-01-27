@@ -18,55 +18,33 @@ class SSDPResponse(object):
         self.location = r.getheader("location")
         self.usn = r.getheader("usn")
 
-    def discover(service, timeout=5, retries=1, mx=3):
+    def discover(service, timeout=5.0, retries=1, mx=3):
         group = ("239.255.255.250", 1900)
         message = "\r\n".join([
             'M-SEARCH * HTTP/1.1',
             'HOST: {0}:{1}',
             'MAN: "ssdp:discover"',
             'ST: {st}','MX: {mx}','',''])
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-        message_bytes = message.format(*group, st=service, mx=mx).encode('utf-8')
-        sock.sendto(message_bytes, group)
 
         responses = {}
-        try:
-            response = SSDPResponse(sock.recv(1024))
-            responses[response.location] = response
-        except socket.timeout:
-            print("yeet!")
-            exit(1)
+        for _ in range(retries):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            sock.settimeout(timeout)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+            message_bytes = message.format(*group, st=service, mx=mx).encode('utf-8')
+            sock.sendto(message_bytes, group)
+            while True:
+                try:
+                    response = SSDPResponse(sock.recv(1024))
+                    responses[response.location] = response
+                except TimeoutError:
+                    break
 
         return list(responses.values())
 
 async def main():
     rokus = []
-
-    roku_keys = [
-        "Home",
-        "Rev",
-        "Fwd",
-        "Play",
-        "Select",
-        "Left",
-        "Right",
-        "Down",
-        "Up",
-        "Back",
-        "InstantReplay",
-        "Info",
-        "Backspace",
-        "Search",
-        "Enter",
-        "VolumeDown",
-        "VolumeMute",
-        "VolumeUp",
-        "PowerOff",
-        "ChannelUp",
-        "ChannelDown"
-    ]
 
     for response in SSDPResponse.discover("roku:ecp"):
         rokus.append({"ip": response.location})
